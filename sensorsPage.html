@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Autour du CO2</title>
+  <style>
+    /* Style the canvas element */
+    body {
+      background-color: #222;
+      color : #fff;
+      display: grid;
+      place-items: center;
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    canvas {
+      width: 350px;
+      height: 350px;
+      border: 1px solid black;
+      display: block;
+      margin: auto;
+    }
+
+    .center {
+      display: flex;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+
+<body>
+  <style>
+    /* Style the navbar */
+    .navbar {
+      overflow: hidden;
+      width: 100%;
+      margin-bottom: 1em;
+      background-color: #333;
+    }
+
+    /* Style the navbar links */
+    .navbar a {
+      float: left;
+      display: block;
+      color: white;
+      text-align: center;
+      padding: 14px 20px;
+      text-decoration: none;
+    }
+
+    /* Change the color of links on hover */
+    .navbar a.link:hover {
+      background-color: #ddd;
+      color: black;
+    }
+
+    /* Add a color to the active/current link */
+    .navbar a.active {
+      background-color: #4CAF50;
+      color: white;
+    }
+
+    /* Right-aligned section inside the navbar */
+    .navbar-right {
+      float: right;
+    }
+
+    /* Make the navbar responsive on small screens */
+  </style>
+  <div class="navbar">
+    <a class="active link" href="/">Home</a>
+    <a class="link" href="/Sensors">Sensors</a>
+  </div>
+  <!-- The canvas element where the donut indicator will be drawn -->
+  <div class="center"><canvas id="indicator"></canvas></div>
+
+  <br>
+  <!-- A form with a range input to control the value of the indicator -->
+  <form>
+    Value: <input type="range" min="0" max="100" step="1" value="50" id="valueInput">
+  </form>
+  <br>
+  <!--- A button to randomize the value of the indicator -->
+  <script>
+    // Get the canvas element and its context
+    let startAngle = -Math.PI;
+    let endAngle = Math.PI;
+    let color = "#3498db";
+    let value = 1000;
+	
+    function assignColor(rate) {
+      if (rate < 0.33) {
+        color = '#28C76F'
+      } else if (rate < 0.44) {
+        color = '#F8D800'
+      } else {
+        color = '#EA5455'
+      }
+      return color
+    }
+    // Draw the donut indicator
+    function drawIndicator(can) {
+      // Clear the canvas
+	  			const ctx = can.getContext("2d");
+				can.width = can.offsetWidth;
+				can.height = can.offsetHeight;
+				ctx.clearRect(0, 0, can.width, can.height);
+				let centerX = can.width / 2;
+				let centerY = can.height / 2;
+				let radius = can.width / 2 - 40;
+      // Draw the donut background
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, startAngle, 0);
+      ctx.strokeStyle = "#ecf0f1";
+      ctx.lineWidth = 60;
+      ctx.stroke();
+      // Calculate the angle of the value arc
+      let valueAngle = ((value / 3000) * Math.PI) > Math.PI ? Math.PI : (value / 3000) * Math.PI;
+      // Set the color gradient for the donut indicator
+      // Draw the donut indicator
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, startAngle, startAngle + valueAngle);
+      ctx.lineWidth = 60;
+      ctx.strokeStyle = assignColor(valueAngle / Math.PI);
+      ctx.stroke();
+      // Set the font properties for the text
+      ctx.font = "bold 36px Helvetica";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = 'white';
+      // Draw the text with the value of the donut indicator
+      ctx.fillText(value + "ppm", centerX, centerY - 10);
+      ctx.font = "bold 18px Helvetica";
+      ctx.fillText(can.id, centerX, can.height - 10)
+    }
+    // Update the value of the donut indicator when the range input element is changed
+
+    function searchSensor() {
+      console.log("Searching...")
+      fetch('http://192.168.1.1/AllSensors')
+        .then(res =>
+          res.json()
+        ).then(data => {
+          const sensors = data;
+			document.querySelector('.center').innerHTML = '';
+            sensors.forEach((sensor) => {
+				const canvas = document.createElement('canvas');
+				canvas.id = sensor.id;
+				document.querySelector('.center').appendChild(canvas);
+				value = sensor.rate
+				drawIndicator(canvas)
+});
+        })
+        .catch((err) => {
+          console.warn("Une erreur est survenue - Erreur : " + err)
+        })
+    }
+    setInterval(searchSensor, 5000)
+
+
+  </script>
+</body>
